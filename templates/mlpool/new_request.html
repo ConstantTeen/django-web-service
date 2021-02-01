@@ -1,0 +1,10 @@
+{% extends "mlpool/base.html" %}
+{% block content %}
+    <p>Создайте новый запрос</p>
+    <a href="{% url 'mlpool:task' task.id %}">Назад</a>
+    <form action="{% url 'mlpool:task' task.id%}" method='post'>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button name="submit">Создать запрос</button>
+    </form>
+{% endblock content %}

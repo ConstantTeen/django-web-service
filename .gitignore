@@ -1,0 +1,7 @@
+db.sqlite3
+task.pdf
+рофлы*
+.*
+/mlpool/migrations/
+/reporting_xml_parser/migrations/
+/users/migrations/

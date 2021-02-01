@@ -1,0 +1,21 @@
+{% extends 'mlpool/base.html' %}
+
+{% block content %}
+    <p>
+        <a href="{% url 'mlpool:projects' %}">Назад к проектам</a>
+        <h3>{{ project }}</h3>
+    </p>
+    <p>{{ project.description }}</p>
+    <div>
+    <ul>
+        {% for t in tasks %}
+            <li>
+                <a href="{% url 'mlpool:task' t.id %}">{{ t }}</a>
+            </li>
+        {% empty %}
+            <p>В этом проекте пока нет заадч.</p>
+        {% endfor %}
+    </ul>
+    </div>
+{% endblock content %}
+

@@ -1,0 +1,23 @@
+{% extends 'mlpool/base.html' %}
+
+{% block content %}
+    <p>
+        <a href="{% url 'mlpool:project' project.id%}">Назад в проект</a>
+    </p>
+    <h3>{{ task }}</h3>
+    <p>{{ task.description }}</p>
+    <div>
+        <h3>История запросов по задаче:</h3>
+        <ul>
+            {% for r in requests %}
+                <li>
+                    <a href="{% url 'mlpool:request' r.id %}">{{ r }}</a> - {{ r.date_added }}
+                </li>
+            {% empty %}
+            Вы пока не обращались ни к одной модели
+            {% endfor %}
+        </ul>
+    </div>
+    <p>Создать новый запрос: <a href="{% url 'mlpool:new_request' task.id %}">тык</a></p>
+{% endblock content %}
+
