@@ -2,6 +2,7 @@ db.sqlite3
 task.pdf
 рофлы*
 .*
+.idea
 /mlpool/migrations/
 /reporting_xml_parser/migrations/
 /users/migrations/
