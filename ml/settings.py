@@ -33,7 +33,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'mlpool',
     'users',
-    'reporting_xml_parser',
+    'ml_models',
 
     'django.contrib.admin',
     'django.contrib.auth',

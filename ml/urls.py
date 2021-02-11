@@ -20,5 +20,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('mlpool.urls')),
     path('users/', include('users.urls')),
-    path('xml/', include('reporting_xml_parser.urls')),
+    path('models/', include('ml_models.urls')),
 ]
