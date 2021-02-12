@@ -26,16 +26,44 @@ class Task(models.Model):
         return self.task_name
 
 
-class Model(models.Model):
+class MLModel(models.Model):
     task = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
     model_name = models.CharField(max_length=200)
     version = models.CharField(max_length=200)
     description = models.CharField(max_length=2000)
     date_added = models.DateTimeField(auto_now_add=True)
-    # TODO: editable=False => binary_body can not be set by a ModelForm
-    binary_body = models.BinaryField()
+    binary_body = models.FileField(upload_to='uploads')
 
     def __str__(self):
         return self.model_name
 
 
+class UserRequest(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
+    ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
+    date_added = models.DateTimeField(auto_now_add=True)
+# TODO: добавить статус: OK, ERROR, IN_PROCESS
+
+    def __str__(self):
+        return "request #" + str(self.id)
+
+
+class Result(models.Model):
+    ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
+    user_request = models.ForeignKey(UserRequest, on_delete=models.DO_NOTHING)
+    date_added = models.DateTimeField(auto_now_add=True)
+    # spent_time = models.TimeField(default=0)
+    input_data = models.CharField(max_length=4000)
+    prediction = models.CharField(max_length=4000)
+
+    def __str__(self):
+        return "result #" + str(self.id)
+
+
+class Response(models.Model):
+    result = models.ForeignKey(Result, on_delete=models.DO_NOTHING)
+    date_added = models.DateTimeField(auto_now_add=True)
+    expert_target = models.CharField(max_length=4000)
+
+    def __str__(self):
+        return "response #" + str(self.id)

@@ -1,5 +1,6 @@
 <form action="{% url 'ml_models:index' %}" method="post">
     {% csrf_token %}
     <input type="text" name="xml" value="{{ xml }}">
+    <input type="text" name="option" value="request">
     <button type="submit">Post</button>
 </form>

@@ -4,7 +4,6 @@ from django.http import HttpResponse
 from .utils import gen_xml
 
 
-# TODO: test this
 def index(request):
     if request.method == 'GET':
         context = {'xml': gen_xml(1, 1, [
@@ -12,30 +11,35 @@ def index(request):
             [5, 6, 7, 8],
             [1, 2, 3, 4],
             [4, 3, 2, 1],
-        ])}
+        ], data_columns=['col0', 'col1', 'col2', 'col3'])}
         return render(request, 'ml_models/index.html', context)
 
     if request.method == 'POST':
         xml = request.POST['xml']
-        xml.emc
-        print(xml)
+        option = request.POST['option']
+
         parser = XMLParser(xml)
 
         project = parser.get_project()
         task = parser.get_task()
+        result = parser.get_result()
         input_data = parser.get_input_data()
 
-        # target, ml_model = ml_magic(input_data, task)
-        #
-        # remember_request(project, task, input_data, target, ml_model)
-        #
-        # answer = create_answer(target)
-        #
-        # return answer
+        if option == 'request':
+            target, ml_model = ml_magic(input_data, task)
 
-        print(project, task, input_data)
+            user_request = remember_request(task, ml_model)
 
-        return HttpResponse(xml)
+            result = remember_result(user_request, xml, ml_model)
+
+            xml_answer = create_answer(project.id, task.id, result, target)
+
+            return HttpResponse('готово ебать')
+        else:
+            remember_response(result, xml)
+            return HttpResponse('понял принял держи в курсе')
+
+
 
 
 
