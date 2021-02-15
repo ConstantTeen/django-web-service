@@ -2,28 +2,15 @@
 
 {% block content %}
     <div>
-        <h3>Список доступных проектов:</h3>
+        <h3>Список проектов:</h3>
         <ul>
-            {% for p in user_projects %}
+            {% for p in projects %}
                 <li>
                     <a href="{% url 'mlpool:project' p.id%}">{{ p }}</a> -
                     {{ p.date_added }}
                 </li>
                 {% empty %}
-                <p>Вы не состоите ни в одном проекте.</p>
-            {%  endfor %}
-        </ul>
-    </div>
-    <div>
-        <h3>Остальные проекты:</h3>
-        <ul>
-            {% for p in other_projects %}
-                <li>
-                    <a href="{% url 'mlpool:projects'%}">{{ p }}</a> -
-                    {{ p.date_added }}
-                </li>
-                {% empty %}
-                <p></p>
+                <p>Пока нет ни одного проекта.</p>
             {%  endfor %}
         </ul>
     </div>

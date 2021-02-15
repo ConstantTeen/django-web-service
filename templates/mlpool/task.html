@@ -7,17 +7,17 @@
     <h3>{{ task }}</h3>
     <p>{{ task.description }}</p>
     <div>
-        <h3>История запросов по задаче:</h3>
+        <h3>Список моделей:</h3>
         <ul>
-            {% for r in requests %}
+            {% for m in models %}
                 <li>
-                    <a href="{% url 'mlpool:request' r.id %}">{{ r }}</a> - {{ r.date_added }}
+                    {{ m }} - {{ m.date_added }}
                 </li>
             {% empty %}
-            Вы пока не обращались ни к одной модели
+            Пока нет моделей.
             {% endfor %}
         </ul>
     </div>
-    <p>Создать новый запрос: <a href="{% url 'mlpool:new_request' task.id %}">тык</a></p>
+    <p>Добавить новую модель: <a href="{% url 'mlpool:new_ml_model' task.id %}">тык</a></p>
 {% endblock content %}
 

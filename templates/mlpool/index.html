@@ -1,21 +1,15 @@
 {% extends 'mlpool/base.html' %}
 
 {% block content %}
-    <p>
-        Этот вебсервис позволяет делать всякие прикольные штуки.
-        <button href="{%url 'users:login'%}">Login</button>{#TODO: href does not work#}
-    </p>
+
     {% if user.is_authenticated %}
         Project List: <a href="{% url 'mlpool:projects' %}">here</a>
         {% else %}
-        <p>Sign in into your account to see your list of available projects.</p>
+        <p>
+        Это страничка для датасаентистов.
+        Залогинься чтобы начать добавлять новые модели в пул:
+        <a href="{%url 'users:login'%}">Login</a>{#TODO: href does not work#}
+        </p>
     {% endif %}
-    <h3>Новости:</h3>
-    <p>
-        {#TODO: make a model of news#}
-        <li>Мы вот чото сделали</li>
-        <li>А потом еще чото</li>
-        <li>А потом еще</li>
-    </p>
 {% endblock content %}
 

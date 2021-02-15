@@ -1,0 +1,12 @@
+{% extends "mlpool/base.html" %}
+{% block content %}
+    <p>Новая модель для задачи {{ task }}</p>
+    <a href="{% url 'mlpool:task' task.id %}">Назад</a>
+
+    <form action="{% url 'mlpool:new_ml_model' task.id%}" enctype="multipart/form-data" method='post'>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button name="submit">Добавить модель</button>
+        <input type="hidden" name="next" value="{% url 'mlpool:task' task.id%}" />
+    </form>
+{% endblock content %}

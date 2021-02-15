@@ -34,10 +34,10 @@ def index(request):
 
             xml_answer = create_answer(project.id, task.id, result, target)
 
-            return HttpResponse('готово ебать')
-        else:
-            remember_response(result, xml)
-            return HttpResponse('понял принял держи в курсе')
+            return HttpResponse('готово')
+
+        remember_response(result, xml)  # option == response
+        return HttpResponse('понял принял держи в курсе')
 
 
 
