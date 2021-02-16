@@ -1,16 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
+from datetime import datetime, date, time
 
 
 class Project(models.Model):
     project_name = models.CharField(max_length=200)
     description = models.CharField(max_length=2000)
     date_added = models.DateTimeField(auto_now_add=True)
-    STATUS_CHOICES = [
-        ('valid', 'Готов к использованию'),
-        ('error', 'Отправлен на доработку'),
-    ]
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='valid')
 
     def __str__(self):
         return self.project_name
@@ -43,7 +39,8 @@ class UserRequest(models.Model):
     task = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
     ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
     date_added = models.DateTimeField(auto_now_add=True)
-# TODO: добавить статус: OK, ERROR, IN_PROCESS
+    spent_time = models.TimeField(default=time(0))
+# TODO: добавить статус: OK, ERROR, IN_PROCESS, и time_spent
 
     def __str__(self):
         return "request #" + str(self.id)
@@ -53,7 +50,6 @@ class Result(models.Model):
     ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
     user_request = models.ForeignKey(UserRequest, on_delete=models.DO_NOTHING)
     date_added = models.DateTimeField(auto_now_add=True)
-    # spent_time = models.TimeField(default=0)
     input_data = models.CharField(max_length=4000)
     prediction = models.CharField(max_length=4000)
 

@@ -5,6 +5,8 @@ import pandas as pd
 
 import xml.etree.ElementTree as ElementTree
 import pickle
+import time as t
+import datetime
 
 
 class XmlListConfig(list):
@@ -135,6 +137,7 @@ class XMLParser:
 
 
 def ml_magic(input_data, task):
+    tick = t.time()
     ml_model = MLModel.objects.filter(task=task).order_by('date_added')[0]  # newest model
     model_path = str(ml_model.binary_body)
 
@@ -143,13 +146,14 @@ def ml_magic(input_data, task):
 
     prediction = estimator.predict(input_data)
 
-    return prediction, ml_model
+    return prediction, ml_model, datetime.time(microsecond=round((t.time() - tick)*1000))
 
 
-def remember_request(task, ml_model):
+def remember_request(task, ml_model, spent_time):
     request_data = {
         'task': task,
         'ml_model': ml_model,
+        'spent_time': spent_time,
     }
     new_req = UserRequest(**request_data)
     new_req.save()
@@ -162,7 +166,6 @@ def remember_result(user_request, input_data, ml_model):
         'ml_model': ml_model,
         'input_data': input_data,
         'user_request': user_request,
-        # TODO: model time spent
     }
     new_result = Result(**result_data)
     new_result.save()
@@ -184,7 +187,7 @@ def create_answer(project_id, task_id, result, target):
         </data>
     """
 
-    result.update(prediction=target)
+    Result.objects.filter(pk=result.pk).update(prediction=target)
     result.refresh_from_db()
 
     return xml

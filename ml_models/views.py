@@ -2,6 +2,7 @@ from django.shortcuts import render
 from .utils import *
 from django.http import HttpResponse
 from .utils import gen_xml
+import time
 
 
 def index(request):
@@ -26,9 +27,9 @@ def index(request):
         input_data = parser.get_input_data()
 
         if option == 'request':
-            target, ml_model = ml_magic(input_data, task)
+            target, ml_model, spent_time = ml_magic(input_data, task)
 
-            user_request = remember_request(task, ml_model)
+            user_request = remember_request(task, ml_model, spent_time)
 
             result = remember_result(user_request, xml, ml_model)
 
