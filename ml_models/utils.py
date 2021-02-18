@@ -216,6 +216,7 @@ def gen_xml(project_id, task_id, data, data_columns, operation="request"):
 def remember_response(result, xml):
     response_attrib = {
         'result': result,
+        'result_id': result.id,
         'expert_target': xml
     }
     new_response = Response(**response_attrib)
