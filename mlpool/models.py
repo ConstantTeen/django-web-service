@@ -39,8 +39,8 @@ class UserRequest(models.Model):
     task = models.ForeignKey(Task, on_delete=models.DO_NOTHING)
     ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
     date_added = models.DateTimeField(auto_now_add=True)
-    spent_time = models.TimeField(default=time(0))
-# TODO: добавить статус: OK, ERROR, IN_PROCESS, и time_spent
+    spent_time = models.IntegerField(default=0)
+# TODO: добавить статус: OK, ERROR, IN_PROCESS
 
     def __str__(self):
         return "request #" + str(self.id)

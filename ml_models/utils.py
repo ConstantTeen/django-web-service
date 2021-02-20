@@ -1,12 +1,224 @@
 from lxml import objectify, etree
 from django.db import models
 from mlpool.models import *
-import pandas as pd
+from .my_exceptions import *
+from django.core.exceptions import *
 
+import pandas as pd
 import xml.etree.ElementTree as ElementTree
 import pickle
 import time as t
 import datetime
+
+
+class XMLParser:
+    def __init__(self, xml):
+        self.xml = xml
+        self.root = ElementTree.XML(xml)  # TODO: допилить валидацию по xsd
+        self.project, self.task, self.result = self.parse_ids()
+        self.df_cols = self.get_data_columns()
+        self.df = self.xml2df()
+
+    def get_data_columns(self):
+        root = self.root
+        row = root.find('row')
+        cols = row.attrib.keys()
+
+        if 'id' not in cols:
+            raise ColumnsError('Теги row не содержат обязательного атрибута id!')
+
+        return list(cols)
+
+    def parse_ids(self):
+        root = self.root
+        root_attrib = root.attrib
+        project_id = root_attrib['project_id']
+        task_id = root_attrib['task_id']
+
+        if Project.objects.filter(id=project_id).exists():
+            project = Project.objects.get(id=project_id)
+        else:
+            raise ObjectDoesNotExist(f'Проекта с project_id={project_id} не существует!')
+
+        if Task.objects.filter(id=task_id, project_id=project.id).exists():
+            task = Task.objects.get(id=task_id, project_id=project.id)
+        else:
+            raise ObjectDoesNotExist(f'В проекте с project_id={project_id} нет задачи с task_id={task_id}!')
+
+        if 'result_id' in root_attrib:
+            result_id = root_attrib['result_id']
+
+            if Result.objects.filter(id=result_id).exists():
+                result = Result.objects.get(id=result_id)
+            else:
+                raise ObjectDoesNotExist(f'В базе данных нет предсказаний с result_id={result_id}!')
+
+        else:
+            result = None
+
+        return project, task, result
+
+    def xml2df(self):
+        root = self.root
+        df_cols = self.df_cols
+        rows = []
+
+        for row in root.iter('row'):
+            res = []
+            attrib = row.attrib
+
+            for col in df_cols:
+
+                if row is not None and col in row.attrib.keys():
+                    res.append(attrib[col])
+                else:
+                    res.append(None)
+            rows.append({df_cols[i]: res[i] for i, _ in enumerate(df_cols)})
+
+        return pd.DataFrame(rows, columns=df_cols).set_index('id')
+
+    def get_project(self):
+        return self.project
+
+    def get_task(self):
+        return self.task
+
+    def get_result(self):
+        return self.result
+
+    def get_input_data(self):
+        return self.df
+
+
+def ml_magic(input_data, task):
+    """
+    Делает предсказания для входных данных.
+    :param input_data: входные данные в формате pandas.DataFrame
+    :param task: экземпляр класса mlpool.models.Task
+    :return:
+        предсказания в формате pandas.DataFrame,
+        экземпляр класса mlpool.models.MLModel,
+        время работы модели в миллисекундах
+    """
+    tick = t.time()
+
+    if MLModel.objects.filter(task=task).exists():
+        ml_model = MLModel.objects.filter(task=task).order_by('date_added')[0]  # newest model
+    else:
+        raise ObjectDoesNotExist(f"""Для задачи с task_id={task.id} проекта с project_id={task.project_id} пока нет ни одной модели :(""")
+
+    model_path = str(ml_model.binary_body)
+
+    # есть идея при ошибке чтения файла какой-то модели передавать входные данные модели которую удается прочесть,
+    # но хз в таком случае придется записывать в логи что такую-то модель не удалось прочесть
+    with open(model_path, 'rb') as fid:
+        estimator = pickle.load(fid)
+
+    prediction = estimator.predict(input_data)
+
+    tack = t.time()
+
+    return prediction, ml_model, round((tack-tick)*1e3)
+
+
+def remember_request(task, ml_model, spent_time):
+    """
+    Записывает данные запроса в БД.
+    :param task: экземпляр класса mlpool.models.Task
+    :param ml_model: экземпляр класса mlpool.models.MLModel
+    :param spent_time: Время затраченное на работу модели
+    :return: экземпляр класса mlpool.models.UserRequest
+    """
+    request_data = {
+        'task': task,
+        'ml_model': ml_model,
+        'spent_time': spent_time,
+    }
+    new_req = UserRequest(**request_data)
+    new_req.save()
+
+    return new_req
+
+
+def remember_and_form_result(user_request, input_data, target, ml_model, project_id, task_id):
+    """
+    Создает запись в модели Result и пихает туда предсказанные значения для пользователя.
+    :param user_request: экземпляр класса mlpool.models.UserRequest
+    :param input_data: входные данные в формате xml строки
+    :param target: предсказания в формате pandas.DataFrame
+    :param ml_model: экземпляр класса mlpool.models.MLModel
+    :param project_id: id проекта
+    :param task_id: id задачи
+    :return: переформатированные предсказания target в виде xml строки
+    """
+    result_data = {
+        'ml_model': ml_model,
+        'input_data': input_data,
+        'user_request': user_request
+    }
+
+    new_result = Result(**result_data)
+    new_result.save()
+
+    prediction = create_answer(project_id, task_id, new_result.id, target)
+
+    Result.objects.filter(pk=new_result.pk).update(prediction=prediction)
+    new_result.refresh_from_db()
+
+    return prediction
+
+
+# TODO: test this function
+def create_answer(project_id, task_id, result_id, target):
+    """
+    Формирует ответ для пользователя в формате xml.
+    :param project_id: id проекта
+    :param task_id: id задачи
+    :param result_id: id записи в модели Result
+    :param target: предсказания в формате pandas.DataFrame
+    :return: xml в виде строки
+    """
+
+    if not Task.objects.filter(id=task_id, project_id=project_id).exists():
+        raise ObjectDoesNotExist("Не верная комбинация project_id и task_id!")
+
+    xml = f"""
+        <data project_id='{project_id}' task_id='{task_id}' result_id='{result_id}'>
+    """
+    cols = tuple(target.columns)
+
+    for row in target:
+        xml += f"""
+            <row """
+
+        for col in cols:
+            xml += f"{col}={row[col]}"
+
+        xml += """></row>
+        """
+
+    xml += """
+        </data>
+    """
+
+    return xml
+
+
+def remember_response(result, xml):
+    """
+    Записывает экспертные ответы в БД.
+    :param result: экземпляр класса mlpool.models.Result
+    :param xml: экспертные ответы в формате xml в виде строки
+    :return: id записи в модели Response
+    """
+    response_attrib = {
+        'result': result,
+        'expert_target': xml
+    }
+    new_response = Response(**response_attrib)
+    new_response.save()
+
+    return new_response.id
 
 
 class XmlListConfig(list):
@@ -71,161 +283,3 @@ class XmlDictConfig(dict):
             else:
                 self.update({element.tag: element.text})
 
-
-class XMLParser:
-    def __init__(self, xml):
-        self.xml = xml
-        self.root = ElementTree.XML(xml)
-        self.project, self.task, self.result = self.parse_ids()
-        self.df_cols = self.get_data_columns()
-        self.df = self.xml2df()
-
-    def get_data_columns(self):
-        root = self.root
-        row = root.find('row')
-        cols = row.attrib.keys()
-
-        return list(cols)
-
-    def parse_ids(self):
-        root = self.root
-        root_attrib = root.attrib
-        project_id = root_attrib['project_id']
-        task_id = root_attrib['task_id']
-
-        project = Project.objects.get(id=project_id)
-        task = Task.objects.get(id=task_id)
-
-        if 'result_id' in root_attrib:
-            result_id = root_attrib['result_id']
-            result = Result.objects.get(id=result_id)
-        else:
-            result = None
-
-        return project, task, result
-
-    def xml2df(self):
-        root = self.root
-        df_cols = self.df_cols
-        rows = []
-
-        for row in root.iter('row'):
-            res = []
-            attrib = row.attrib
-
-            for col in df_cols:
-
-                if row is not None and col in row.attrib.keys():
-                    res.append(attrib[col])
-                else:
-                    res.append(None)
-            rows.append({df_cols[i]: res[i] for i, _ in enumerate(df_cols)})
-
-        return pd.DataFrame(rows, columns=df_cols)
-
-    def get_project(self):
-        return self.project
-
-    def get_task(self):
-        return self.task
-
-    def get_result(self):
-        return self.result
-
-    def get_input_data(self):
-        return self.df
-
-
-def ml_magic(input_data, task):
-    tick = t.time()
-    ml_model = MLModel.objects.filter(task=task).order_by('date_added')[0]  # newest model
-    model_path = str(ml_model.binary_body)
-
-    with open(model_path, 'rb') as fid:
-        estimator = pickle.load(fid)
-
-    prediction = estimator.predict(input_data)
-
-    return prediction, ml_model, datetime.time(microsecond=round((t.time() - tick)*1000))
-
-
-def remember_request(task, ml_model, spent_time):
-    request_data = {
-        'task': task,
-        'ml_model': ml_model,
-        'spent_time': spent_time,
-    }
-    new_req = UserRequest(**request_data)
-    new_req.save()
-
-    return new_req
-
-
-def remember_result(user_request, input_data, ml_model):
-    result_data = {
-        'ml_model': ml_model,
-        'input_data': input_data,
-        'user_request': user_request,
-    }
-    new_result = Result(**result_data)
-    new_result.save()
-
-    return new_result
-
-
-def create_answer(project_id, task_id, result, target):
-    xml = f"""
-        <data project_id='{project_id}' task_id='{task_id}' result_id='{result.id}'>
-    """
-
-    for elem in target:
-        xml += f"""
-            <row y='{elem}'></row>
-        """
-
-    xml += """
-        </data>
-    """
-
-    Result.objects.filter(pk=result.pk).update(prediction=target)
-    result.refresh_from_db()
-
-    return xml
-
-
-def gen_xml(project_id, task_id, data, data_columns, operation="request"):
-    xml = f"""
-        <data project_id='{project_id}' task_id='{task_id}' operation='{operation}'>
-    """
-
-    for row in data:
-        xml += "<row "
-
-        for i, col in enumerate(data_columns):
-            xml += f"""{col}='{row[i]}' """
-
-        xml += "></row>"
-
-    xml += """
-        </data>
-    """
-
-    return xml
-
-
-def remember_response(result, xml):
-    response_attrib = {
-        'result': result,
-        'result_id': result.id,
-        'expert_target': xml
-    }
-    new_response = Response(**response_attrib)
-    new_response.save()
-
-    return new_response.id
-
-
-# <data project_id='1' task_id='1' operation='request'>
-#     <row col0='1' col1='2' col2='3'></row>
-#     <row col0='1' col1='2' col2='3'></row>
-# </data>

@@ -1,9 +1,7 @@
 from django.shortcuts import render
 from .utils import *
 from django.http import HttpResponse
-from .utils import gen_xml
 from django.views.decorators.csrf import csrf_exempt
-import time
 
 
 @csrf_exempt
@@ -24,16 +22,9 @@ def index(request):
 
             user_request = remember_request(task, ml_model, spent_time)
 
-            result = remember_result(user_request, xml, ml_model)
-
-            xml_answer = create_answer(project.id, task.id, result, target)
+            xml_answer = remember_and_form_result(user_request, xml, target, ml_model, project.id, task.id)
 
             return HttpResponse(xml_answer)
 
-        remember_response(result, xml)  # option == response
-        return HttpResponse('понял принял держи в курсе')
-
-
-
-
-
+        response_id = remember_response(result, xml)  # option == response
+        return HttpResponse(f'понял принял держи в курсе. id вашего запроса: {response_id}')
