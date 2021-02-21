@@ -40,7 +40,12 @@ class UserRequest(models.Model):
     ml_model = models.ForeignKey(MLModel, on_delete=models.DO_NOTHING)
     date_added = models.DateTimeField(auto_now_add=True)
     spent_time = models.IntegerField(default=0)
-# TODO: добавить статус: OK, ERROR, IN_PROCESS
+
+    STATUS_CHOICES = (
+        ('OK', 'OK'),
+        ('ERROR', 'ERROR')
+    )
+    status = models.CharField(default='OK', choices=STATUS_CHOICES, max_length=40)
 
     def __str__(self):
         return "request #" + str(self.id)

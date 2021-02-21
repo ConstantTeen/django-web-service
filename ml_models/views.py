@@ -22,7 +22,13 @@ def index(request):
 
             user_request = remember_request(task, ml_model, spent_time)
 
+            xml_answer = 'нихуя'
+
+            # try:
             xml_answer = remember_and_form_result(user_request, xml, target, ml_model, project.id, task.id)
+            # except:
+            #     UserRequest.objects.filter(pk=user_request.pk).update(status='ERROR')
+            #     user_request.refresh_from_db()
 
             return HttpResponse(xml_answer)
 

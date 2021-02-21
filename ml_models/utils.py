@@ -113,7 +113,7 @@ def ml_magic(input_data, task):
     # но хз в таком случае придется записывать в логи что такую-то модель не удалось прочесть
     with open(model_path, 'rb') as fid:
         estimator = pickle.load(fid)
-
+    # TODO: запилить модельку, которая возвращает pandas.DataFrame
     prediction = estimator.predict(input_data)
 
     tack = t.time()
