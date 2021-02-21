@@ -168,7 +168,6 @@ def remember_and_form_result(user_request, input_data, target, ml_model, project
     return prediction
 
 
-# TODO: test this function
 def create_answer(project_id, task_id, result_id, target):
     """
     Формирует ответ для пользователя в формате xml.
@@ -179,23 +178,15 @@ def create_answer(project_id, task_id, result_id, target):
     :return: xml в виде строки
     """
 
-    if not Task.objects.filter(id=task_id, project_id=project_id).exists():
-        raise ObjectDoesNotExist("Не верная комбинация project_id и task_id!")
-
     xml = f"""
         <data project_id='{project_id}' task_id='{task_id}' result_id='{result_id}'>
     """
-    cols = tuple(target.columns)
 
-    for row in target:
-        xml += f"""
-            <row """
-
-        for col in cols:
-            xml += f"{col}={row[col]}"
-
-        xml += """></row>
-        """
+    for index, row in target.iterrows():
+        xml += f"<row id='{index}' "
+        for col in row.index:
+            xml += f"{col}='{row[col]}' "
+        xml += '></row>\n'
 
     xml += """
         </data>
