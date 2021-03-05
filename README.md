@@ -101,3 +101,58 @@ with open('path/for/model', 'rb') as f:
 prediction = loaded_model.make_prediction(X)
 print(prediction)
 ```
+
+### Пример создания модели:
+Импорт необходимых библиотек:
+```
+from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import FunctionTransformer
+import pandas as pd
+```
+Модель будет организованна в виде пайплайна. В качестве основы для модели выберем DecisionTreeClassifier
+, и напишем последний слой пайплайна, который будет декодировать вывод классификатора в человеко-читаемый формат.
+
+```
+# dictionary describing classificator output
+code2name = {
+    0: 'cat',
+    1: 'dog'
+}
+
+class DecisionTreeTransformer(DecisionTreeClassifier):
+    def fit(self, X, y):
+        self.X_columns = list(X.columns)
+        self.y_columns = list(y.columns)
+
+        return super().fit(X,y)
+    
+    def transform(self, X, y=None):
+        y_pred = self.predict(X).reshape(-1,1)
+        y_df = pd.DataFrame(y_pred, columns=self.y_columns)
+        y_dec = y_df.applymap(lambda x: code2name[x])
+        
+        return pd.concat([X, y_dec], axis=0)
+        
+    def make_prediction(self, X, y=None):
+        res = self.transform(X)
+        
+        return res[self.y_columns]
+```
+Опишем сам пайплайн:
+```
+pipe = Pipeline(
+        [
+            ('feature selection', FunctionTransformer(lambda df: df[['col1', 'col2', 'col3']])),
+            ('classifier', DecisionTreeTransformer())
+        ]
+    )
+    
+pipe.fit(X_train, y_train)
+pipe.predict(X_test)  # returns just codes
+pipe.transform(X_test)  # returns human readable classes and input dataset
+pipe.make_prediction(X_test)  # returns classes in desired format 
+```
+Важно что все промежуточные слои ```sklearn.pipeline.Pipeline``` должны содержать метод ```transform(self, X, y=None)``` 
+и поэтому не получится использовать ```DecisionTreeClassifier``` в чистом виде.
+
