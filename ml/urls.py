@@ -21,4 +21,5 @@ urlpatterns = [
     path('', include('mlpool.urls')),
     path('users/', include('users.urls')),
     path('models/', include('ml_models.urls')),
+    path('easy_using/', include('easy_using.urls')),
 ]

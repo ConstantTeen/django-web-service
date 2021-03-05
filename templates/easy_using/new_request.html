@@ -1,0 +1,13 @@
+{% extends "easy_using/base.html" %}
+{% block content %}
+    <p>Тута надо заполнить чтобы получить ответы.</p>
+    <a href="{% url 'easy_using:index' %}">Назад</a>
+
+    <form action="{% url 'easy_using:new_request'%}" enctype="multipart/form-data" method='post'>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button name="submit">Отправить запрос.</button>
+{#        TODO: куда и как редиректить?#}
+{#        <input type="hidden" name="next" value="{% url ''%}" />#}
+    </form>
+{% endblock content %}

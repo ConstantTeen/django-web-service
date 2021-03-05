@@ -1,0 +1,9 @@
+{% extends 'easy_using/base.html' %}
+
+{% block content %}
+    <p>
+        <a href="{% url 'easy_using:new_request' %}">Получить предсказания</a> -
+        <a href="{% url 'easy_using:new_response' %}">Отправить исправления</a>
+    </p>
+{% endblock content %}
+

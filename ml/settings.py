@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'mlpool',
     'users',
     'ml_models',
+    'easy_using',
 
     'django.contrib.admin',
     'django.contrib.auth',
